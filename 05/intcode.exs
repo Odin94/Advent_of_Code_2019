@@ -1,6 +1,7 @@
 defmodule Intcode do
-  @code_to_instruction_size %{1 => 4, 2 => 4, 3 => 2, 4 => 2, 99 => 1}
+  @code_to_instruction_size %{1 => 4, 2 => 4, 3 => 2, 4 => 2, 5 => 3, 6 => 3, 7 => 4, 8 => 4, 99 => 1}
   @input 1
+  @input2 5
 
 
   def get_input() do
@@ -54,7 +55,7 @@ defmodule Intcode do
   end
 
   def execute(code, {3, pos}, i) do
-    code = Map.put(code, pos, @input)
+    code = Map.put(code, pos, @input2)
     new_i = i + Map.get(@code_to_instruction_size, 3)
 
     fetch(code, next_input(code, new_i), new_i)
@@ -67,8 +68,44 @@ defmodule Intcode do
     fetch(code, next_input(code, new_i), new_i)
   end
 
+  def execute(code, {5, a, b}, i) do
+    if a != 0 do
+      fetch(code, next_input(code, b), b)
+    else
+      new_i = i + Map.get(@code_to_instruction_size, 5)
+      fetch(code, next_input(code, new_i), new_i)
+    end
+  end
+
+  def execute(code, {6, a, b}, i) do
+    if a == 0 do
+      fetch(code, next_input(code, b), b)
+    else
+      new_i = i + Map.get(@code_to_instruction_size, 6)
+      fetch(code, next_input(code, new_i), new_i)
+    end
+  end
+
+  def execute(code, {7, a, b, pos}, i) do
+    new_value = if a < b, do: 1, else: 0
+
+    code = Map.put(code, pos, new_value)
+    new_i = i + Map.get(@code_to_instruction_size, 7)
+
+    fetch(code, next_input(code, new_i), new_i)
+  end
+
+  def execute(code, {8, a, b, pos}, i) do
+    new_value = if a == b, do: 1, else: 0
+
+    code = Map.put(code, pos, new_value)
+    new_i = i + Map.get(@code_to_instruction_size, 7)
+
+    fetch(code, next_input(code, new_i), new_i)
+  end
+
   def execute(code, 99, _) do
-    Map.get(code, 0)
+    # done
   end
 
   def fetch(code, {instruction, a, b, pos}, i) do
@@ -93,6 +130,20 @@ defmodule Intcode do
       code, {
         instruction_without_mode(instruction),
         pos
+      },
+      i
+    )
+  end
+
+  # for opcodes 5, 6
+  def fetch(code, {instruction, a, b}, i) do
+    modes = get_modes(instruction)
+
+    execute(
+      code, {
+        instruction_without_mode(instruction),
+        get_param(code, a, Enum.at(modes, 2)),
+        get_param(code, b, Enum.at(modes, 1))
       },
       i
     )
